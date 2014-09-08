@@ -52,7 +52,6 @@
             var ThresholdModel = Backbone.Model.extend();
             this.thresholdModel = new ThresholdModel({"threshold" : this.thresholdValue});
             this.thresholdModel.on('change:threshold', function() {
-                this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
                 this.render(false);
             }, this);
             
@@ -79,8 +78,6 @@
                 if (this.model) {
                     if (!this.rendering) {
                         this.thresholdModel.set({"threshold" : event.target.value});
-                    } else {
-                        this.$el.find(".threshold-selector").val(this.thresholdValue);
                     }
                 }
             }
@@ -124,7 +121,8 @@
             
             this.rendering = true;
             this.thresholdValue = this.thresholdModel.get("threshold");
-
+            this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
+            
             windowHeight = $(window).height();
             if (windowHeight<600) {
                 windowHeight=600;
@@ -138,6 +136,7 @@
             if (!this.model.isDone()) {
                 // running
                 this.$el.find(".sq-content").show();
+                this.$el.find("#sq-threshold-selector").hide();
                 if (this.model.get("status") == "RUNNING") {
                     this.$el.find(".sq-loading").show();
                 }
@@ -145,7 +144,7 @@
             } else if (this.model.get("error")) {
                 // error
                 this.$el.find(".sq-error").show();
-                this.$el.find(".sq-content").hide();
+                this.$el.find(".sq-sankey").hide();
                 this.$el.find(".sq-wait").hide();
             } else {
                 // display
@@ -197,7 +196,8 @@
                 }
                 this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);   
 
-                this.$el.find(".sq-content").show();
+                this.$el.find("#sq-threshold-selector").show();
+                this.$el.find(".sq-sankey").show();
                 this.$el.find(".sq-wait").hide();
                 this.$el.find(".sq-error").hide();
             }

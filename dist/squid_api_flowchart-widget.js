@@ -403,7 +403,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression;
 
 
-  buffer += "<div class='sq-loading' style='position:absolute; width:100%; top:40%;'>\r\n<div class=\"spinner\">\r\n  <div class=\"rect5\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect1\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect5\"></div>\r\n</div>\r\n</div>\r\n<div class=\"sq-sankey\">\r\n    <div class='sq-content'>\r\n    	<div class='sq-header'></div>\r\n	    <div class='sq-diagram'></div>\r\n    </div>\r\n    <div id=\"sq-threshold-selector\" style=\"width:180px; position: relative; top: -25px; left:80%;\">\r\n		<table>\r\n			<tr>\r\n				<td colspan=\"3\"><div style=\"text-align:center;\">Details</div></td>\r\n			</tr>\r\n	    	<tr style=\"vertical-align:middle;\">\r\n		        <td style=\"vertical-align:middle;padding-top:5px;\"><span style=\"font-size:large;\"><i class=\"fa fa-minus-circle\"></i></span></td>\r\n		        <td style=\"vertical-align:middle;\"><input style=\"vertical-align:text-bottom;\" type=\"range\" id=\"range\" class='threshold-selector' min=\"0\" max=\"100\" step=\"1\" value='";
+  buffer += "<div class='sq-loading' style='position:absolute; width:100%; top:40%;'>\r\n<div class=\"spinner\">\r\n  <div class=\"rect5\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect1\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect5\"></div>\r\n</div>\r\n</div>\r\n<div class=\"sq-sankey\">\r\n    <div class='sq-content'>\r\n    	<div class='sq-header'></div>\r\n	    <div class='sq-diagram'></div>\r\n    </div>\r\n    <div id=\"sq-threshold-selector\" style=\"width:180px; position: relative; top: -50px; left:80%;\">\r\n		<table>\r\n			<tr>\r\n				<td colspan=\"3\"><div style=\"text-align:center;\">Details</div></td>\r\n			</tr>\r\n	    	<tr style=\"vertical-align:middle;\">\r\n		        <td style=\"vertical-align:middle;padding-top:5px;\"><span style=\"font-size:large;\"><i class=\"fa fa-minus-circle\"></i></span></td>\r\n		        <td style=\"vertical-align:middle;\"><input style=\"vertical-align:text-bottom;\" type=\"range\" id=\"range\" class='threshold-selector' min=\"0\" max=\"100\" step=\"1\" value='";
   if (helper = helpers.thresholdValue) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.thresholdValue); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
@@ -464,7 +464,6 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             var ThresholdModel = Backbone.Model.extend();
             this.thresholdModel = new ThresholdModel({"threshold" : this.thresholdValue});
             this.thresholdModel.on('change:threshold', function() {
-                this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
                 this.render(false);
             }, this);
             
@@ -491,8 +490,6 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 if (this.model) {
                     if (!this.rendering) {
                         this.thresholdModel.set({"threshold" : event.target.value});
-                    } else {
-                        this.$el.find(".threshold-selector").val(this.thresholdValue);
                     }
                 }
             }
@@ -536,7 +533,8 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             
             this.rendering = true;
             this.thresholdValue = this.thresholdModel.get("threshold");
-
+            this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
+            
             windowHeight = $(window).height();
             if (windowHeight<600) {
                 windowHeight=600;
@@ -550,6 +548,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             if (!this.model.isDone()) {
                 // running
                 this.$el.find(".sq-content").show();
+                this.$el.find("#sq-threshold-selector").hide();
                 if (this.model.get("status") == "RUNNING") {
                     this.$el.find(".sq-loading").show();
                 }
@@ -557,7 +556,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             } else if (this.model.get("error")) {
                 // error
                 this.$el.find(".sq-error").show();
-                this.$el.find(".sq-content").hide();
+                this.$el.find(".sq-sankey").hide();
                 this.$el.find(".sq-wait").hide();
             } else {
                 // display
@@ -609,7 +608,8 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 }
                 this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);   
 
-                this.$el.find(".sq-content").show();
+                this.$el.find("#sq-threshold-selector").show();
+                this.$el.find(".sq-sankey").show();
                 this.$el.find(".sq-wait").hide();
                 this.$el.find(".sq-error").hide();
             }
