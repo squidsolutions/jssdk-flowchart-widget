@@ -1057,7 +1057,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             .domain([0, inflexion_value, 100]);
 
             var displayScaleForNodes;
-            if (this.displayOptionModel) {
+            if (this.displayOptionModel && this.secondaryMetric) {
                 displayScaleForNodes = this.displayOptionModel.get("displayScaleForNodes");
             } else {
                 displayScaleForNodes = false;
@@ -1198,10 +1198,12 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 data.percentTotalExit = fomatPercentSpecial(d.exitPercent);
                 data.percentGoThrough = fomatPercentSpecial((d.percentTotal-d.exitPercent)/d.percentTotal*100);
                 data.percentExit = fomatPercentSpecial(d.exitPercent/d.percentTotal*100);
-                data.secondaryKPI = me.secondaryMetric.oid;
-                data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
-                data.secondaryColor = scaleColor(d);
-                data.secondaryDefinition = me.secondaryMetric.lname;
+                if (this.secondaryMetric) {
+                    data.secondaryKPI = me.secondaryMetric.oid;
+                    data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
+                    data.secondaryColor = scaleColor(d);
+                    data.secondaryDefinition = me.secondaryMetric.lname;
+                }
                 data.primaryDefinition = me.primaryMetric.lname;
                 
                 // pie chart
@@ -1302,10 +1304,12 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 data.percentRelativeSource = fomatPercentSpecial(d.percentTotal/d.source.percentTotal*100);
                 data.percentRelativeTarget = fomatPercentSpecial(d.percentTotal/d.target.percentTotal*100);
                 data.exitRate = fomatPercentSpecial(d.exit/d.value*100);
-                data.secondaryKPI = me.secondaryMetric.oid;
-                data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
-                data.secondaryColor = scaleColor(d);
-                data.secondaryDefinition = me.secondaryMetric.lname;
+                if (this.secondaryMetric) {
+                    data.secondaryKPI = me.secondaryMetric.oid;
+                    data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
+                    data.secondaryColor = scaleColor(d);
+                    data.secondaryDefinition = me.secondaryMetric.lname;
+                }
                 data.primaryDefinition = me.primaryMetric.lname;
                 return templateTipLink(data);
             };
