@@ -786,7 +786,7 @@
                 data.percentTotalExit = fomatPercentSpecial(d.exitPercent);
                 data.percentGoThrough = fomatPercentSpecial((d.percentTotal-d.exitPercent)/d.percentTotal*100);
                 data.percentExit = fomatPercentSpecial(d.exitPercent/d.percentTotal*100);
-                if (this.secondaryMetric) {
+                if (me.secondaryMetric) {
                     data.secondaryKPI = me.secondaryMetric.oid;
                     data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
                     data.secondaryColor = scaleColor(d);
@@ -892,7 +892,7 @@
                 data.percentRelativeSource = fomatPercentSpecial(d.percentTotal/d.source.percentTotal*100);
                 data.percentRelativeTarget = fomatPercentSpecial(d.percentTotal/d.target.percentTotal*100);
                 data.exitRate = fomatPercentSpecial(d.exit/d.value*100);
-                if (this.secondaryMetric) {
+                if (me.secondaryMetric) {
                     data.secondaryKPI = me.secondaryMetric.oid;
                     data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
                     data.secondaryColor = scaleColor(d);
