@@ -419,7 +419,8 @@
                     }
                     var valuePercent = node.value/total*100;// use the total for the start step
                     // check threshold
-                    if ((valuePercent < threshold || stats.count>15)) {// if under threshold, merge the node; if too many nodes, merge too
+                    if ((valuePercent < threshold || stats.count>15)) {
+                        // if under threshold, merge the node; if too many nodes, merge too
                         // get merge node for the node step
                         var mergeNode = mergeNodesByStep[node.step];
                         if (!mergeNode) {
