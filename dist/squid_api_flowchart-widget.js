@@ -601,7 +601,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 }           
 
                 // energy
-                energy = this.applyThreshold(this.energyData,this.thresholdModel.get("threshold"));
+                energy = this.applyThreshold(this.energyData,this.thresholdModel.get("threshold"), this.metadata);
 
                 // build the diagram
                 var diagramPort = this.$el.find(".sq-diagram");
@@ -824,7 +824,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
          *  apply a threshold on a energy matrix and return a new matrix;
          *  threshold applies at the node level, nodes under threshold are merged into one "other" node.
          */
-        applyThreshold : function(energy,threshold) {
+        applyThreshold : function(energy, threshold, metadata) {
 
             // convert the threshold from expected [0,100] interval into [.01,100]
             threshold = Math.max(0,Math.min(100,100-threshold));// force 0-100
@@ -873,6 +873,13 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                                     "secondary" : 0
                             };
                             mergeNode.fullname = mergeNode.name;
+                            if (metadata) {
+                                var info = metadata[mergeNode.name];
+                                if (info) {
+                                    mergeNode.colorHtml = info.color;
+                                    mergeNode.color = d3.rgb(info.color);
+                                }
+                            }
                             new_nodes.push(mergeNode);
                             mergeNodesByStep[node.step]=mergeNode;
                         }
