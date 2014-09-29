@@ -32,6 +32,8 @@
         primaryMetric : null,
         
         secondaryMetric : null,
+        
+        metadata : null,
 
         initialize : function(options) {
             if (this.model) {
@@ -40,6 +42,9 @@
             }
             if (options.filterModel) {
                 this.filterModel = options.filterModel;
+            }
+            if (options.metadata) {
+                this.metadata = options.metadata;
             }
             if (options.displayOptionModel) {
                 this.displayOptionModel = options.displayOptionModel;
@@ -95,7 +100,7 @@
                 for (var i=0;i<this.analyses.length;i++) {
                     var result = this.analyses[i].get("results");
                     if (result) {
-                        energy = energy?this.buildEnergyDataSet(result,energy):this.buildEnergyDataSet(result);
+                        energy = this.buildEnergyDataSet(this.metadata,result,energy);
                     } else {
                         energy = null;
                         break;
@@ -208,7 +213,7 @@
         /*
          * Turn a Datatable into a D3 energy object with added information to support the threshold computation
          */
-        buildEnergyDataSet : function(datatable,energy) {
+        buildEnergyDataSet : function(metadata,datatable,energy) {
             var startTime = new Date().getTime();
             var step0 = 0;
             if (!energy) {
@@ -249,9 +254,26 @@
                     energy.stepStats[node.step].nodes++;
                     // handle label
                     node.label = nodename;
-                    node.colorHtml = 'rgb(120,121,123)';
-                    node.color = d3.rgb('rgb(120,121,123)');
-                    node.fullname = node.label;
+                    
+                    if (metadata) {
+                    	var info = metadata[nodename];
+            		if (info) {
+            			if (info.name) {
+            			    node.label = info.name;
+            			}
+            			node.colorHtml = info.color;
+            			node.color = d3.rgb(info.color);
+            			node.fullname = info.fullname?info.fullname:node.label;
+            		} else {
+            			node.colorHtml = metadata[""].color;
+            			node.color = d3.rgb(metadata[""].color);
+            			node.fullname = node.label;
+            		}
+                    } else {
+                    	node.colorHtml = 'rgb(120,121,123)';
+                    	node.color = d3.rgb('rgb(120,121,123)');
+                    	node.fullname = node.label;
+                    }
                     
                     nodesById[key] = node;
                     energy.nodes.push(node);
