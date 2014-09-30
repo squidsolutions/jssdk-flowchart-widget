@@ -155,7 +155,7 @@
                 // error
                 this.$el.find(".sq-error").show();
                 this.$el.find(".sq-sankey").hide();
-                this.$el.find(".sq-wait").hide();
+                this.$el.find(".sq-loading").hide();
             } else {
                 // display
                 var sankeyWidth = this.$el.width();
@@ -212,7 +212,7 @@
 
                 this.$el.find("#sq-threshold-selector").show();
                 this.$el.find(".sq-sankey").show();
-                this.$el.find(".sq-wait").hide();
+                this.$el.find(".sq-loading").hide();
                 this.$el.find(".sq-error").hide();
             }
             this.rendering = false;
