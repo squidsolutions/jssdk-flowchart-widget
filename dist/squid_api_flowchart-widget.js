@@ -1109,7 +1109,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             var colorScaleData = {"steps" : []};
             var step = -5;
             var defaultColor = "rgba(170,170,170,.5)";
-            for (var i = 100; i>=0; i+=step) {
+            for (var i = 0; i<=100; i-=step) {
                 var selected = avg_secondary_rate<=i && avg_secondary_rate>i+step;
                 var styleClass = selected?"color-scale-selected":"color-scale";
                 var color = (displayScaleForNodes||selected)?colorscale(i):defaultColor;
