@@ -1,9 +1,9 @@
 (function (root, factory) {
     root.squid_api.view.FlowChartView = factory(
-            root.Backbone, 
-            squid_api.template.squid_api_flowchart_widget, 
-            squid_api.template.sankeyHeader, 
-            squid_api.template.sankeyTipNode, 
+            root.Backbone,
+            squid_api.template.squid_api_flowchart_widget,
+            squid_api.template.sankeyHeader,
+            squid_api.template.sankeyTipNode,
             squid_api.template.sankeyTipLink,
             squid_api.template.sankeyColorScale,
             squid_api.template.sankeyColorScaleTip);
@@ -12,7 +12,7 @@
     var View = Backbone.View.extend( {
 
         titleMaxChars : 30, /* the maximum number of characters for a node title */
-        
+
         thresholdValue : 42, /* don't ask why */
 
         sankeyD3 : null,
@@ -22,16 +22,18 @@
         filterModel : null,
 
         displayOptionModel : null,
-        
+
         thresholdModel : null,
-        
+
         analyses : null,
-        
+
         rendering : false,
-        
+
         primaryMetric : null,
-        
+
         secondaryMetric : null,
+
+        pivotView : null,
 
         initialize : function(options) {
             if (this.model) {
@@ -41,6 +43,9 @@
             if (options.filterModel) {
                 this.filterModel = options.filterModel;
             }
+            if (options.pivotView) {
+                this.pivotView = options.pivotView;
+            }
             if (options.displayOptionModel) {
                 this.displayOptionModel = options.displayOptionModel;
             } else {
@@ -48,14 +53,14 @@
                 this.displayOptionModel = new DisplayOptionModel({displayScaleForNodes : true});
             }
             this.displayOptionModel.on('change:displayScaleForNodes', function() {this.render(true);}, this);
-            
+
             var ThresholdModel = Backbone.Model.extend();
             this.thresholdModel = new ThresholdModel({"threshold" : this.thresholdValue});
             this.thresholdModel.on('change:threshold', function() {
                 this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
                 this.render(false);
             }, this);
-            
+
             $(window).on("resize", _.bind(this.resize(),this));
         },
 
@@ -121,7 +126,7 @@
         },
 
         render : function(slowmo) {
-            
+
             this.rendering = true;
             this.thresholdValue = this.thresholdModel.get("threshold");
 
@@ -160,7 +165,7 @@
                 var formatPercent = d3.format(",.0f");
                 for (var i=1; i<headerColsCnt; i++) {
                     headerCols.push({
-                        "label":this.energyData.cols[i].lname, 
+                        "label":this.energyData.cols[i].lname,
                         "width" : headerWidth,
                         "subtotal" : this.energyData.subtotals[i],
                         "value" : (!this.energyData.subtotals?"No data":(!this.energyData.subtotals[i]?"0%":formatPercent(this.energyData.subtotals[i]/this.energyData.subtotals[0]*100)+"%"))
@@ -168,7 +173,11 @@
                 }
                 this.$el.find(".sq-loading").hide();
                 this.$el.find(".sq-header").html(templateHeader({"headerCols" : headerCols, "width" : headerWidth}));
-
+                // Render the dimension selector here
+                if (this.pivotView){
+                  this.pivotView.setElement(this.$el.find("#origin"));
+                  this.pivotView.render();
+                }
                 // add the origin view
                 var domains = squid_api.model.project.get("domains");
                 for (var domainIdx = 0; domainIdx < domains.length; domainIdx++) {
@@ -182,7 +191,7 @@
                             }
                         }
                     }
-                }           
+                }
 
                 // energy
                 energy = this.applyThreshold(this.energyData,this.thresholdModel.get("threshold"));
@@ -191,17 +200,20 @@
                 var diagramPort = this.$el.find(".sq-diagram");
                 var headerPort = this.$el.find(".sq-header");
                 sankeyHeight = sankeyHeight - headerPort.height();
-       
+
                 if (!this.sankeyD3) {
                     this.sankeyD3 = this.buildSankey(diagramPort.get(0), energy, this.energyData.cols[this.energyData.cols.length-1], sankeyWidth, sankeyHeight, headerWidth);
                 }
-                this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);   
+                this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);
 
                 this.$el.find(".sq-content").show();
                 this.$el.find(".sq-wait").hide();
                 this.$el.find(".sq-error").hide();
             }
             this.rendering = false;
+
+
+
             return this;
         },
 
@@ -226,7 +238,7 @@
                         "secondaryTotal": 0
                 };
             } else {
-                step0 = energy.stepCount-1;// previous_energy(last_column)==next_energy(first_column) 
+                step0 = energy.stepCount-1;// previous_energy(last_column)==next_energy(first_column)
             }
 
             var nodesById = energy.nodesById;//
@@ -240,11 +252,11 @@
                     node = {
                             "name":nodename,
                             "input":0,
-                            "output":0, 
-                            "exit":0, 
+                            "output":0,
+                            "exit":0,
                             "primary":0,
-                            "secondary":0, 
-                            "step":step0+step, 
+                            "secondary":0,
+                            "step":step0+step,
                             "id":nidx};
                     energy.stepStats[node.step].nodes++;
                     // handle label
@@ -252,7 +264,7 @@
                     node.colorHtml = 'rgb(120,121,123)';
                     node.color = d3.rgb('rgb(120,121,123)');
                     node.fullname = node.label;
-                    
+
                     nodesById[key] = node;
                     energy.nodes.push(node);
                 }
@@ -294,11 +306,11 @@
                     }
                 }
             }
-            
+
             // set the metrics
             this.primaryMetric = datatable.cols[primaryMetricId];
             this.secondaryMetric = datatable.cols[secondaryMetricId];
-            
+
             // create nodes and links to join consecutive steps
             for ( var i2 = 0; i2 < datatable.rows.length; i2++) {
                 var row = datatable.rows[i2].v;
@@ -355,7 +367,7 @@
                                     target.value = Math.max(target.input,target.output);
                                     source.exit = source.input>0?source.input - source.output:0;
                                     target.exit = target.input>0?target.input - target.output:0;
-                                    
+
                                     if (primaryMetric) {
                                         if (source.step===0) source.primary += primaryMetric;
                                         target.primary += primaryMetric;
@@ -570,7 +582,7 @@
                     // filter on node value
                     var col = this.energyData.cols[d.step];
                     var value = d.name;
-                    var dimension = 
+                    var dimension =
                     {"id" : {"domainId" : this.analyses[0].get("domains")[0].domainId, "dimensionId" : col.id},
                             "name" : col.lname};
                     this.filterModel.addSelection(dimension,value);
@@ -587,7 +599,7 @@
                 if (source.type!="merge") {
                     var col = this.energyData.cols[source.step];
                     var value = source.name;
-                    var dimension = 
+                    var dimension =
                     {"id" : {"domainId" : this.analyses[0].get("domains")[0].domainId, "dimensionId" : col.id},
                             "name" : col.lname};
                     this.filterModel.addSelection(dimension,value);
@@ -596,7 +608,7 @@
                 if (target.type!="merge") {
                     var col2 = this.energyData.cols[target.step];
                     var value2 = target.name;
-                    var dimension2 = 
+                    var dimension2 =
                     {"id" : {"domainId" : this.analyses[0].get("domains")[0].domainId, "dimensionId" : col2.id},
                             "name" : col2.lname};
                     this.filterModel.addSelection(dimension2,value2);
@@ -651,7 +663,7 @@
                 displayScaleForNodes = false;
             }
 
-            var scaleColor = function (d) { 
+            var scaleColor = function (d) {
                 var x = d.secondary/d.primary*100;
                 return colorscale(x);
             };
@@ -682,7 +694,7 @@
                 });
             }
             $("#secondary-range").html(templateSankeyColorScale(colorScaleData));
-            
+
             var colorScaleTipData = {
                     "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate)
             };
@@ -713,7 +725,7 @@
             // enter link first
             var link = linkdata.enter().append("path")
             .attr("class", "link")
-            .style("stroke", function(d) { 
+            .style("stroke", function(d) {
                     return linkDefaultColor;
                 })
             .style("stroke-opacity", function(d) {
@@ -723,11 +735,11 @@
             .on("dblclick", function (d) {
                     me.dbclickLink(d);
                 })
-            .transition().duration(duration).style("stroke-width", function(d) { 
-                    return Math.max(1, d.dy); 
+            .transition().duration(duration).style("stroke-width", function(d) {
+                    return Math.max(1, d.dy);
                 })
-            .sort(function(a, b) { 
-                    return b.dy - a.dy; 
+            .sort(function(a, b) {
+                    return b.dy - a.dy;
                 });
 
             // enter node after to be on top
@@ -791,7 +803,7 @@
                 data.secondaryColor = scaleColor(d);
                 data.secondaryDefinition = me.secondaryMetric.lname;
                 data.primaryDefinition = me.primaryMetric.lname;
-                
+
                 // pie chart
                 data.piechart = {};
                 data.piechart.r = 15;
