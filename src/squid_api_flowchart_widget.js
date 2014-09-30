@@ -32,6 +32,8 @@
         primaryMetric : null,
 
         secondaryMetric : null,
+        
+        metadata : null,
 
         pivotView : null,
 
@@ -42,6 +44,9 @@
             }
             if (options.filterModel) {
                 this.filterModel = options.filterModel;
+            }
+            if (options.metadata) {
+                this.metadata = options.metadata;
             }
             if (options.pivotView) {
                 this.pivotView = options.pivotView;
@@ -57,7 +62,6 @@
             var ThresholdModel = Backbone.Model.extend();
             this.thresholdModel = new ThresholdModel({"threshold" : this.thresholdValue});
             this.thresholdModel.on('change:threshold', function() {
-                this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
                 this.render(false);
             }, this);
 
@@ -84,8 +88,6 @@
                 if (this.model) {
                     if (!this.rendering) {
                         this.thresholdModel.set({"threshold" : event.target.value});
-                    } else {
-                        this.$el.find(".threshold-selector").val(this.thresholdValue);
                     }
                 }
             }
@@ -103,7 +105,7 @@
                 for (var i=0;i<this.analyses.length;i++) {
                     var result = this.analyses[i].get("results");
                     if (result) {
-                        energy = energy?this.buildEnergyDataSet(result,energy):this.buildEnergyDataSet(result);
+                        energy = this.buildEnergyDataSet(this.metadata,result,energy);
                     } else {
                         energy = null;
                         break;
@@ -129,7 +131,8 @@
 
             this.rendering = true;
             this.thresholdValue = this.thresholdModel.get("threshold");
-
+            this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
+            
             windowHeight = $(window).height();
             if (windowHeight<600) {
                 windowHeight=600;
@@ -143,6 +146,7 @@
             if (!this.model.isDone()) {
                 // running
                 this.$el.find(".sq-content").show();
+                this.$el.find("#sq-threshold-selector").hide();
                 if (this.model.get("status") == "RUNNING") {
                     this.$el.find(".sq-loading").show();
                 }
@@ -150,7 +154,7 @@
             } else if (this.model.get("error")) {
                 // error
                 this.$el.find(".sq-error").show();
-                this.$el.find(".sq-content").hide();
+                this.$el.find(".sq-sankey").hide();
                 this.$el.find(".sq-wait").hide();
             } else {
                 // display
@@ -194,7 +198,7 @@
                 }
 
                 // energy
-                energy = this.applyThreshold(this.energyData,this.thresholdModel.get("threshold"));
+                energy = this.applyThreshold(this.energyData,this.thresholdModel.get("threshold"), this.metadata);
 
                 // build the diagram
                 var diagramPort = this.$el.find(".sq-diagram");
@@ -206,7 +210,8 @@
                 }
                 this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);
 
-                this.$el.find(".sq-content").show();
+                this.$el.find("#sq-threshold-selector").show();
+                this.$el.find(".sq-sankey").show();
                 this.$el.find(".sq-wait").hide();
                 this.$el.find(".sq-error").hide();
             }
@@ -220,7 +225,7 @@
         /*
          * Turn a Datatable into a D3 energy object with added information to support the threshold computation
          */
-        buildEnergyDataSet : function(datatable,energy) {
+        buildEnergyDataSet : function(metadata,datatable,energy) {
             var startTime = new Date().getTime();
             var step0 = 0;
             if (!energy) {
@@ -261,10 +266,27 @@
                     energy.stepStats[node.step].nodes++;
                     // handle label
                     node.label = nodename;
-                    node.colorHtml = 'rgb(120,121,123)';
-                    node.color = d3.rgb('rgb(120,121,123)');
-                    node.fullname = node.label;
-
+                    
+                    if (metadata) {
+                    	var info = metadata[nodename];
+            		if (info) {
+            			if (info.name) {
+            			    node.label = info.name;
+            			}
+            			node.colorHtml = info.color;
+            			node.color = d3.rgb(info.color);
+            			node.fullname = info.fullname?info.fullname:node.label;
+            		} else {
+            			node.colorHtml = metadata[""].color;
+            			node.color = d3.rgb(metadata[""].color);
+            			node.fullname = node.label;
+            		}
+                    } else {
+                    	node.colorHtml = 'rgb(120,121,123)';
+                    	node.color = d3.rgb('rgb(120,121,123)');
+                    	node.fullname = node.label;
+                    }
+                    
                     nodesById[key] = node;
                     energy.nodes.push(node);
                 }
@@ -402,7 +424,7 @@
          *  apply a threshold on a energy matrix and return a new matrix;
          *  threshold applies at the node level, nodes under threshold are merged into one "other" node.
          */
-        applyThreshold : function(energy,threshold) {
+        applyThreshold : function(energy, threshold, metadata) {
 
             // convert the threshold from expected [0,100] interval into [.01,100]
             threshold = Math.max(0,Math.min(100,100-threshold));// force 0-100
@@ -431,7 +453,8 @@
                     }
                     var valuePercent = node.value/total*100;// use the total for the start step
                     // check threshold
-                    if ((valuePercent < threshold || stats.count>15)) {// if under threshold, merge the node; if too many nodes, merge too
+                    if ((valuePercent < threshold || stats.count>15)) {
+                        // if under threshold, merge the node; if too many nodes, merge too
                         // get merge node for the node step
                         var mergeNode = mergeNodesByStep[node.step];
                         if (!mergeNode) {
@@ -450,6 +473,13 @@
                                     "secondary" : 0
                             };
                             mergeNode.fullname = mergeNode.name;
+                            if (metadata) {
+                                var info = metadata[mergeNode.name];
+                                if (info) {
+                                    mergeNode.colorHtml = info.color;
+                                    mergeNode.color = d3.rgb(info.color);
+                                }
+                            }
                             new_nodes.push(mergeNode);
                             mergeNodesByStep[node.step]=mergeNode;
                         }
@@ -657,7 +687,7 @@
             .domain([0, inflexion_value, 100]);
 
             var displayScaleForNodes;
-            if (this.displayOptionModel) {
+            if (this.displayOptionModel && this.secondaryMetric) {
                 displayScaleForNodes = this.displayOptionModel.get("displayScaleForNodes");
             } else {
                 displayScaleForNodes = false;
@@ -679,7 +709,7 @@
             var colorScaleData = {"steps" : []};
             var step = -5;
             var defaultColor = "rgba(170,170,170,.5)";
-            for (var i = 100; i>=0; i+=step) {
+            for (var i = 0; i<=100; i-=step) {
                 var selected = avg_secondary_rate<=i && avg_secondary_rate>i+step;
                 var styleClass = selected?"color-scale-selected":"color-scale";
                 var color = (displayScaleForNodes||selected)?colorscale(i):defaultColor;
@@ -798,10 +828,12 @@
                 data.percentTotalExit = fomatPercentSpecial(d.exitPercent);
                 data.percentGoThrough = fomatPercentSpecial((d.percentTotal-d.exitPercent)/d.percentTotal*100);
                 data.percentExit = fomatPercentSpecial(d.exitPercent/d.percentTotal*100);
-                data.secondaryKPI = me.secondaryMetric.oid;
-                data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
-                data.secondaryColor = scaleColor(d);
-                data.secondaryDefinition = me.secondaryMetric.lname;
+                if (me.secondaryMetric) {
+                    data.secondaryKPI = me.secondaryMetric.oid;
+                    data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
+                    data.secondaryColor = scaleColor(d);
+                    data.secondaryDefinition = me.secondaryMetric.lname;
+                }
                 data.primaryDefinition = me.primaryMetric.lname;
 
                 // pie chart
@@ -902,10 +934,12 @@
                 data.percentRelativeSource = fomatPercentSpecial(d.percentTotal/d.source.percentTotal*100);
                 data.percentRelativeTarget = fomatPercentSpecial(d.percentTotal/d.target.percentTotal*100);
                 data.exitRate = fomatPercentSpecial(d.exit/d.value*100);
-                data.secondaryKPI = me.secondaryMetric.oid;
-                data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
-                data.secondaryColor = scaleColor(d);
-                data.secondaryDefinition = me.secondaryMetric.lname;
+                if (me.secondaryMetric) {
+                    data.secondaryKPI = me.secondaryMetric.oid;
+                    data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
+                    data.secondaryColor = scaleColor(d);
+                    data.secondaryDefinition = me.secondaryMetric.lname;
+                }
                 data.primaryDefinition = me.primaryMetric.lname;
                 return templateTipLink(data);
             };
