@@ -41,11 +41,19 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression;
 
 
-  buffer += "<a rel='tooltip' class='prevent-default' href='#' data-toggle='tooltip' data-placement='top' title data-original-title='Average % of selected visits with at least 1 FTA'>";
+  buffer += "<a rel='tooltip' class='prevent-default' href='#' data-toggle='tooltip' data-placement='top' title data-original-title='Average % of selected visits with at least 1 ";
+  if (helper = helpers.metric) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.metric); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + "'>";
   if (helper = helpers.avgSecondaryRate) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.avgSecondaryRate); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "% Visits with FTA</a>";
+    + "% ";
+  if (helper = helpers.metric) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.metric); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + "</a>";
   return buffer;
   });
 
@@ -1140,7 +1148,8 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             $("#secondary-range").html(templateSankeyColorScale(colorScaleData));
 
             var colorScaleTipData = {
-                    "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate)
+                    "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate),
+                    "metric" : this.secondaryMetric.name
             };
             $("#secondary-value").html(templateSankeyColorScaleTip(colorScaleTipData));
             $("[rel=tooltip]").tooltip();

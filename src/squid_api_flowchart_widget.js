@@ -728,7 +728,8 @@
             $("#secondary-range").html(templateSankeyColorScale(colorScaleData));
 
             var colorScaleTipData = {
-                    "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate)
+                    "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate),
+                    "metric" : this.secondaryMetric.name
             };
             $("#secondary-value").html(templateSankeyColorScaleTip(colorScaleTipData));
             $("[rel=tooltip]").tooltip();
