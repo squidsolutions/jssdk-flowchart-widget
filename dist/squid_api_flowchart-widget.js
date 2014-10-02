@@ -603,7 +603,9 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                         for (var dimensionIdx = 0; dimensionIdx < dimensions.length; dimensionIdx++) {
                             var dim = dimensions[dimensionIdx];
                             if (dim.oid == this.analyses[0].get("dimensions")[0].dimensionId) {
-                                this.$el.find('#sq-origin').html(dim.name);
+                                if (!this.pivotView){
+                                    this.$el.find('#sq-origin').html(dim.name);
+                                }
                             }
                         }
                     }
