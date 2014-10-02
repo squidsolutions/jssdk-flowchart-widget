@@ -106,7 +106,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.source)),stack1 == null || stack1 === false ? stack1 : stack1.colorHtml)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + ";\"></div></td><td>&nbsp;"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.source)),stack1 == null || stack1 === false ? stack1 : stack1.fullname)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "</td></tr>\n</table>\n<table>\n<tr><td rowspan=2 style=\"width:15px;padding-top:6px;height:36px;\">&bull;</td><td style='padding-left:15px;padding-top:6px;text-align:right;vertical-align:middle;'>";
+    + "</td></tr>\n</table>\n<table>\n<tr><td rowspan=\"2\" style=\"width:15px;padding-top:6px;height:36px;background-image:url('assets/images/dot-2x.png');background-repeat:repeat-y;background-position:50% 15%;\">&nbsp;</td><td style='padding-left:15px;padding-top:6px;text-align:right;vertical-align:middle;'>";
   if (helper = helpers.percentRelativeSource) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.percentRelativeSource); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
@@ -142,7 +142,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.secondaryDefinition) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.secondaryDefinition); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</label></td></tr>\n</table>\n</div>";
+    + "</label></td></tr>\n</table>\n</div>\n";
   return buffer;
   });
 
