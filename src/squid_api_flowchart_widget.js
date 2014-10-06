@@ -25,6 +25,8 @@
 
         thresholdModel : null,
 
+        percentageDisplay : false,
+
         analyses : null,
 
         rendering : false,
@@ -32,7 +34,7 @@
         primaryMetric : null,
 
         secondaryMetric : null,
-        
+
         metadata : null,
 
         pivotView : null,
@@ -65,6 +67,10 @@
                 this.render(false);
             }, this);
 
+            var PercentageDisplayModel = Backbone.Model.extend();
+            this.percentageDisplayModel = new PercentageDisplayModel({"display" : this.percentageDisplay});
+            this.percentageDisplayModel.on('change:display', this.render, this);
+
             $(window).on("resize", _.bind(this.resize(),this));
         },
 
@@ -88,6 +94,14 @@
                 if (this.model) {
                     if (!this.rendering) {
                         this.thresholdModel.set({"threshold" : event.target.value});
+                    }
+                }
+            },
+            "click .checkbox-percentage": function(event) {
+                if (this.model) {
+                    if (!this.rendering) {
+                        this.percentageDisplayModel.set({"display" : event.target.checked});
+                        console.log("Percentage display model changed to: " + event.target.checked);
                     }
                 }
             }
@@ -132,11 +146,15 @@
             this.rendering = true;
             this.thresholdValue = this.thresholdModel.get("threshold");
             this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
-            
+
+            this.displayPercentage = this.percentageDisplayModel.get("display");
+            this.$el.find(".display-percentage").attr("checked", this.percentageDisplayModel.get("display"));
+
             windowHeight = $(window).height();
             if (windowHeight<600) {
                 windowHeight=600;
             }
+
             var sankeyHeight = windowHeight-50-45-77-5;
             $(".sq-widget").css({"height":sankeyHeight});
             if (!this.sankeyD3) {
@@ -147,6 +165,7 @@
                 // running
                 this.$el.find(".sq-content").show();
                 this.$el.find("#sq-threshold-selector").hide();
+                this.$el.find("#percentage-display").hide();
                 if (this.model.get("status") == "RUNNING") {
                     this.$el.find(".sq-loading").show();
                 }
@@ -213,13 +232,12 @@
                 this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);
 
                 this.$el.find("#sq-threshold-selector").show();
+                this.$el.find("#percentage-display").show();
                 this.$el.find(".sq-sankey").show();
                 this.$el.find(".sq-loading").hide();
                 this.$el.find(".sq-error").hide();
             }
             this.rendering = false;
-
-
 
             return this;
         },
@@ -268,7 +286,7 @@
                     energy.stepStats[node.step].nodes++;
                     // handle label
                     node.label = nodename;
-                    
+
                     if (metadata) {
                     	var info = metadata[nodename];
             		if (info) {
@@ -288,11 +306,13 @@
                     	node.color = d3.rgb('rgb(120,121,123)');
                     	node.fullname = node.label;
                     }
-                    
+
                     nodesById[key] = node;
                     energy.nodes.push(node);
                 }
+
                 return node;
+
             }
             var selectedMetricId = null;
             var primaryMetricId = null;
@@ -592,7 +612,6 @@
             };
 
         },
-
         dbclickNode : function(d) {
             if (d.type=="merge") {
                 // zoom in
@@ -779,6 +798,7 @@
             var node = nodedata.enter().append("g")
             .attr("class","node")
             .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+            .style("position", "relative")
             .on("dblclick", function (d) {
                     me.dbclickNode(d);
                 })
@@ -789,23 +809,56 @@
                 );
 
             node.append("text")
-            .attr("x", 15 + sankey.nodeWidth())
-            .attr("text-anchor", "start")
-            .attr("transform", null)
+            .attr({
+                "class": "node-name",
+                "x": 55 + sankey.nodeWidth(),
+                "text-anchor": 'start',
+                "transform": null,
+            })
             .text(function(d) {
                 var name = d.label;
-                if (name.length > me.titleMaxChars && name.indexOf("...", this.length - 3) == -1) {
-                    name = name.substr(0, me.titleMaxChars) + "...";
-                }
+                    if (name.length > me.titleMaxChars && name.indexOf("...", this.length - 3) == -1) {
+                        name = name.substr(0, me.titleMaxChars) + "...";
+                    }
+
                 return name;
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-percentage",
+                "x": 9 + sankey.nodeWidth(),
+                "width": "200"
+            })
+            .style({
+                "display": "none",
+                "fill": "#000000"
+            })
+            .text(function(d) {
+                // Return formatted percentage
+                var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
+                return percentage;
             });
 
             node.append("rect")
             .attr("height", function(d) { return 0; })
             .attr("width", sankey.nodeWidth())
+            .attr("x", 0)
             .style("fill", function(d) { return d.color;})
             .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
             ;
+
+            if (me.percentageDisplayModel.get("display")) {
+                d3.selectAll(".node-percentage")
+                    .style('display', 'inline');
+                d3.selectAll(".node-name")
+                    .attr('x', '80');
+            } else {
+                d3.selectAll(".node-percentage")
+                    .style('display', 'none');
+                d3.selectAll(".node-name")
+                    .attr('x', '30');
+            }
 
             // update
             nodedata
@@ -816,12 +869,8 @@
             .style("fill", nodeColor)
             ;
 
-            nodedata.select("text")
-            .transition().duration(duration)
-            .attr("y", function(d) { return d.dy / 2; })
-            .attr("dy", ".35em");
-
             var tipNodeRenderHtml = function(d) {
+
                 var data = {"width":headerWidth-15};
                 //
                 data.node = d;
@@ -905,6 +954,22 @@
             });
             var myTipNode = this.tipNode;
             svg.call(myTipNode);
+
+            nodedata.select("text.node-percentage")
+            .text(function(d) {
+            // Return formatted percentage
+            var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
+            return percentage;
+            });
+
+            nodedata.select("text.node-name")
+                .attr("y", function(d) { return d.dy / 2; });
+
+            nodedata.selectAll("text")
+            .transition().duration(duration)
+            .attr("y", function(d) { return d.dy / 2; })
+            .attr("dy", ".35em")
+            ;
 
             nodedata.select("rect")
             .on('dblclick', myTipNode.hide)
