@@ -129,15 +129,6 @@
             } else {
                 this.energyData = null;
             }
-            if (this.energyData) {
-                if (this.energyData.subtotals[0]) {
-                    this.model.set("total",this.energyData.subtotals[0]);
-                } else {
-                    this.model.set("total",0);
-                }
-            } else {
-                this.model.set("total",null);
-            }
             this.render(true);
         },
 
