@@ -549,7 +549,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 windowHeight=600;
             }
 
-            var sankeyHeight = windowHeight-50-45-77-5;
+            var sankeyHeight = windowHeight-60-45-77-5;
             $(".sq-widget").css({"height":sankeyHeight});
             if (!this.sankeyD3) {
                 var html = template({"linksValuesThreshold" : this.thresholdModel.get("threshold"), "headerCols" : [], "loading":true});
