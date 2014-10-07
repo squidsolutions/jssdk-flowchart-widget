@@ -445,6 +445,8 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
         thresholdModel : null,
 
+        percentageDisplay : false,
+
         analyses : null,
 
         rendering : false,
@@ -485,6 +487,10 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 this.render(false);
             }, this);
 
+            var PercentageDisplayModel = Backbone.Model.extend();
+            this.percentageDisplayModel = new PercentageDisplayModel({"display" : this.percentageDisplay});
+            this.percentageDisplayModel.on('change:display', this.render, this);
+
             $(window).on("resize", _.bind(this.resize(),this));
         },
 
@@ -508,6 +514,14 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 if (this.model) {
                     if (!this.rendering) {
                         this.thresholdModel.set({"threshold" : event.target.value});
+                    }
+                }
+            },
+            "click .checkbox-percentage": function(event) {
+                if (this.model) {
+                    if (!this.rendering) {
+                        this.percentageDisplayModel.set({"display" : event.target.checked});
+                        console.log("Percentage display model changed to: " + event.target.checked);
                     }
                 }
             }
@@ -544,6 +558,9 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             this.thresholdValue = this.thresholdModel.get("threshold");
             this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
 
+            this.displayPercentage = this.percentageDisplayModel.get("display");
+            this.$el.find(".display-percentage").attr("checked", this.percentageDisplayModel.get("display"));
+
             windowHeight = $(window).height();
             if (windowHeight<600) {
                 windowHeight=600;
@@ -559,6 +576,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 // running
                 this.$el.find(".sq-content").show();
                 this.$el.find("#sq-threshold-selector").hide();
+                this.$el.find("#percentage-display").hide();
                 if (this.model.get("status") == "RUNNING") {
                     this.$el.find(".sq-loading").show();
                 }
@@ -625,6 +643,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);
 
                 this.$el.find("#sq-threshold-selector").show();
+                this.$el.find("#percentage-display").show();
                 this.$el.find(".sq-sankey").show();
                 this.$el.find(".sq-loading").hide();
                 this.$el.find(".sq-error").hide();
@@ -1240,6 +1259,18 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
             ;
 
+            if (me.percentageDisplayModel.get("display")) {
+                d3.selectAll(".node-percentage")
+                    .style('display', 'inline');
+                d3.selectAll(".node-name")
+                    .attr('x', '80');
+            } else {
+                d3.selectAll(".node-percentage")
+                    .style('display', 'none');
+                d3.selectAll(".node-name")
+                    .attr('x', '30');
+            }
+
             // update
             nodedata
             .transition().duration(duration)
@@ -1334,6 +1365,17 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             });
             var myTipNode = this.tipNode;
             svg.call(myTipNode);
+
+            nodedata.select("text.node-percentage")
+            .attr("y", function(d) { return d.dy / 2; })
+            .text(function(d) {
+            // Return formatted percentage
+            var percentage = fomatPercentSpecial(d.percentTotal) + "%";
+            return percentage;
+            });
+
+            nodedata.select("text.node-name")
+                .attr("y", function(d) { return d.dy / 2; });
 
             nodedata.selectAll("text")
             .transition().duration(duration)
