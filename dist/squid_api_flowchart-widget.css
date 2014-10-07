@@ -82,7 +82,7 @@
 /* FLOWCHART  */
 
 .node text.node-percentage, .node text.node-percentage-spacer {
-    stroke-width: 1;
+    stroke-width: 0.65;
 }
 .node text.node-percentage {
     stroke: #000000 !important;
