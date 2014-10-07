@@ -783,7 +783,7 @@
             node.append("text")
             .attr({
                 "class": "node-name",
-                "x": 55 + sankey.nodeWidth(),
+                "x": 15 + sankey.nodeWidth(),
                 "text-anchor": 'start',
                 "transform": null,
             })
@@ -794,22 +794,6 @@
                     }
 
                 return name;
-            });
-
-            node.append("text")
-            .attr({
-                "class": "node-percentage",
-                "x": 9 + sankey.nodeWidth(),
-                "width": "200"
-            })
-            .style({
-                "display": "none",
-                "fill": "#000000"
-            })
-            .text(function(d) {
-                // Return formatted percentage
-                var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
-                return percentage;
             });
 
             node.append("rect")
@@ -915,7 +899,7 @@
             var myTipNode = this.tipNode;
             svg.call(myTipNode);
 
-            nodedata.selectAll("text")
+            nodedata.select("text")
             .transition().duration(duration)
             .attr("y", function(d) { return d.dy / 2; })
             .attr("dy", ".35em")
