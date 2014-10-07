@@ -25,13 +25,13 @@
       opacity: 1
     }
   }
-  
-  
+
+
   .d3-tip.animate {
     animation: bounceIn .7s linear;
     -webkit-animation: bounceIn .7s linear;
   }
-  
+
 
 .d3-tip {
   line-height: 1;
@@ -79,6 +79,15 @@
 
 /* END D3 TIP  */
 
+/* FLOWCHART  */
+
+.node text.node-percentage {
+    stroke: #000000 !important;
+    stroke-width: 1;
+    font-size: 11px;
+}
+
+/* END FLOWCHART  */
 
 .spinner {
   margin: 100px auto;
@@ -94,7 +103,7 @@
   height: 100%;
   width: 10px;
   display: inline-block;
-  
+
   -webkit-animation: stretchdelay 1.2s infinite ease-in-out;
   animation: stretchdelay 1.2s infinite ease-in-out;
 }
@@ -120,15 +129,15 @@
 }
 
 @-webkit-keyframes stretchdelay {
-  0%, 40%, 100% { -webkit-transform: scaleY(0.0) }  
+  0%, 40%, 100% { -webkit-transform: scaleY(0.0) }
   20% { -webkit-transform: scaleY(1.0) }
 }
 
 @keyframes stretchdelay {
-  0%, 40%, 100% { 
+  0%, 40%, 100% {
     transform: scaleY(0.0);
     -webkit-transform: scaleY(0.0);
-  }  20% { 
+  }  20% {
     transform: scaleY(1.0);
     -webkit-transform: scaleY(1.0);
   }

@@ -1240,15 +1240,6 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 "class": "node-percentage",
                 "x": 9 + sankey.nodeWidth(),
                 "width": "200"
-            })
-            .style({
-                "display": "none",
-                "fill": "#000000"
-            })
-            .text(function(d) {
-                // Return formatted percentage
-                var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
-                return percentage;
             });
 
             node.append("rect")
@@ -1372,6 +1363,15 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             // Return formatted percentage
             var percentage = fomatPercentSpecial(d.percentTotal) + "%";
             return percentage;
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
             });
 
             nodedata.select("text.node-name")
