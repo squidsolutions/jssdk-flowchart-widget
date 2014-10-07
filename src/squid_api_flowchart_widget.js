@@ -801,8 +801,22 @@
 
             node.append("text")
             .attr({
-                "class": "node-name",
+                "class": "node-percentage",
+                "x": 15 + sankey.nodeWidth(),
+                "width": "200"
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-percentage-spacer",
                 "x": 55 + sankey.nodeWidth(),
+                "width": "10"
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-name",
+                "x": 40 + sankey.nodeWidth(),
                 "text-anchor": 'start',
                 "transform": null,
             })
@@ -815,22 +829,6 @@
                 return name;
             });
 
-            node.append("text")
-            .attr({
-                "class": "node-percentage",
-                "x": 9 + sankey.nodeWidth(),
-                "width": "200"
-            })
-            .style({
-                "display": "none",
-                "fill": "#000000"
-            })
-            .text(function(d) {
-                // Return formatted percentage
-                var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
-                return percentage;
-            });
-
             node.append("rect")
             .attr("height", function(d) { return 0; })
             .attr("width", sankey.nodeWidth())
@@ -840,12 +838,12 @@
             ;
 
             if (me.percentageDisplayModel.get("display")) {
-                d3.selectAll(".node-percentage")
+                d3.selectAll(".node-percentage, .node-percentage-spacer")
                     .style('display', 'inline');
                 d3.selectAll(".node-name")
                     .attr('x', '80');
             } else {
-                d3.selectAll(".node-percentage")
+                d3.selectAll(".node-percentage, .node-percentage-spacer")
                     .style('display', 'none');
                 d3.selectAll(".node-name")
                     .attr('x', '30');
@@ -952,6 +950,31 @@
             // Return formatted percentage
             var percentage = fomatPercentSpecial(d.percentTotal) + "%";
             return percentage;
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
+            });
+
+            nodedata.select("text.node-percentage-spacer")
+            .attr("y", function(d) { return d.dy / 2; })
+            .text(function(d) {
+            // Return formatted percentage
+            return "|";
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
             });
 
             nodedata.select("text.node-name")

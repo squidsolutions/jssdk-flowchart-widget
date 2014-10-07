@@ -411,7 +411,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression;
 
 
-  buffer += "<div class='sq-loading' style='position:absolute; width:100%; top:40%;'>\r\n<div class=\"spinner\">\r\n  <div class=\"rect5\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect1\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect5\"></div>\r\n</div>\r\n</div>\r\n<div class=\"sq-sankey\">\r\n    <div class='sq-content'>\r\n    	<div class='sq-header'></div>\r\n	    <div class='sq-diagram'></div>\r\n    </div>\r\n    <div id=\"sq-threshold-selector\" style=\"width:180px; position: relative; top: -50px; left:80%;\">\r\n		<table>\r\n			<tr>\r\n				<td colspan=\"3\"><div style=\"text-align:center;\">Details</div></td>\r\n			</tr>\r\n	    	<tr style=\"vertical-align:middle;\">\r\n		        <td style=\"vertical-align:middle;padding-top:5px;\"><span style=\"font-size:large;\"><i class=\"fa fa-minus-circle\"></i></span></td>\r\n		        <td style=\"vertical-align:middle;\"><input style=\"vertical-align:text-bottom;\" type=\"range\" id=\"range\" class='threshold-selector' min=\"0\" max=\"100\" step=\"1\" value='";
+  buffer += "<div class='sq-loading' style='position:absolute; width:100%; top:40%;'>\r\n<div class=\"spinner\">\r\n  <div class=\"rect5\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect1\"></div>\r\n  <div class=\"rect2\"></div>\r\n  <div class=\"rect3\"></div>\r\n  <div class=\"rect4\"></div>\r\n  <div class=\"rect5\"></div>\r\n</div>\r\n</div>\r\n<div class=\"sq-sankey\">\r\n    <div class='sq-content'>\r\n    	<div class='sq-header'></div>\r\n	    <div class='sq-diagram'></div>\r\n    </div>\r\n    <div id=\"percentage-display\" style=\"width:60px; position: absolute; left:93%; bottom: -21px;\">\r\n        <span class=\"title\">Percentage</span>\r\n        <div class=\"checkbox-toggle\">\r\n            <input type=\"checkbox\" value=\"None\" class=\"checkbox-percentage\" id=\"checkbox-percentage\" name=\"check\" />\r\n            <label for=\"checkbox-percentage\"></label>\r\n        </div>\r\n    </div>\r\n    <div id=\"sq-threshold-selector\" style=\"width:180px; position: relative; top: -50px; left:68%;\">\r\n		<table>\r\n			<tr>\r\n				<td colspan=\"3\"><div style=\"text-align:center;\">Details</div></td>\r\n			</tr>\r\n	    	<tr style=\"vertical-align:middle;\">\r\n		        <td style=\"vertical-align:middle;padding-top:5px;\"><span style=\"font-size:large;\"><i class=\"fa fa-minus-circle\"></i></span></td>\r\n		        <td style=\"vertical-align:middle;\"><input style=\"vertical-align:text-bottom;\" type=\"range\" id=\"range\" class='threshold-selector' min=\"0\" max=\"100\" step=\"1\" value='";
   if (helper = helpers.thresholdValue) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.thresholdValue); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
@@ -1221,8 +1221,22 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
             node.append("text")
             .attr({
-                "class": "node-name",
+                "class": "node-percentage",
+                "x": 15 + sankey.nodeWidth(),
+                "width": "200"
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-percentage-spacer",
                 "x": 55 + sankey.nodeWidth(),
+                "width": "10"
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-name",
+                "x": 40 + sankey.nodeWidth(),
                 "text-anchor": 'start',
                 "transform": null,
             })
@@ -1235,22 +1249,6 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 return name;
             });
 
-            node.append("text")
-            .attr({
-                "class": "node-percentage",
-                "x": 9 + sankey.nodeWidth(),
-                "width": "200"
-            })
-            .style({
-                "display": "none",
-                "fill": "#000000"
-            })
-            .text(function(d) {
-                // Return formatted percentage
-                var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
-                return percentage;
-            });
-
             node.append("rect")
             .attr("height", function(d) { return 0; })
             .attr("width", sankey.nodeWidth())
@@ -1260,12 +1258,12 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             ;
 
             if (me.percentageDisplayModel.get("display")) {
-                d3.selectAll(".node-percentage")
+                d3.selectAll(".node-percentage, .node-percentage-spacer")
                     .style('display', 'inline');
                 d3.selectAll(".node-name")
                     .attr('x', '80');
             } else {
-                d3.selectAll(".node-percentage")
+                d3.selectAll(".node-percentage, .node-percentage-spacer")
                     .style('display', 'none');
                 d3.selectAll(".node-name")
                     .attr('x', '30');
@@ -1372,6 +1370,31 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             // Return formatted percentage
             var percentage = fomatPercentSpecial(d.percentTotal) + "%";
             return percentage;
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
+            });
+
+            nodedata.select("text.node-percentage-spacer")
+            .attr("y", function(d) { return d.dy / 2; })
+            .text(function(d) {
+            // Return formatted percentage
+            return "|";
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
             });
 
             nodedata.select("text.node-name")
