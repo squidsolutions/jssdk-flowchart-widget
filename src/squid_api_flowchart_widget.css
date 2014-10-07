@@ -83,10 +83,17 @@
 
 /* FLOWCHART  */
 
+.node text.node-percentage, .node text.node-percentage-spacer {
+    stroke-width: 1;
+}
 .node text.node-percentage {
     stroke: #000000 !important;
-    stroke-width: 1;
     font-size: 11px;
+}
+
+.node text.node-percentage-spacer {
+    fill: #000000 !important;
+    font-size: 13px;
 }
 
 /* END FLOWCHART  */
