@@ -25,6 +25,8 @@
 
         thresholdModel : null,
 
+        percentageDisplay : false,
+
         analyses : null,
 
         rendering : false,
@@ -65,6 +67,10 @@
                 this.render(false);
             }, this);
 
+            var PercentageDisplayModel = Backbone.Model.extend();
+            this.percentageDisplayModel = new PercentageDisplayModel({"display" : this.percentageDisplay});
+            this.percentageDisplayModel.on('change:display', this.render, this);
+
             $(window).on("resize", _.bind(this.resize(),this));
         },
 
@@ -88,6 +94,14 @@
                 if (this.model) {
                     if (!this.rendering) {
                         this.thresholdModel.set({"threshold" : event.target.value});
+                    }
+                }
+            },
+            "click .checkbox-percentage": function(event) {
+                if (this.model) {
+                    if (!this.rendering) {
+                        this.percentageDisplayModel.set({"display" : event.target.checked});
+                        console.log("Percentage display model changed to: " + event.target.checked);
                     }
                 }
             }
@@ -124,6 +138,9 @@
             this.thresholdValue = this.thresholdModel.get("threshold");
             this.$el.find(".threshold-selector").val(this.thresholdModel.get("threshold"));
 
+            this.displayPercentage = this.percentageDisplayModel.get("display");
+            this.$el.find(".display-percentage").attr("checked", this.percentageDisplayModel.get("display"));
+
             windowHeight = $(window).height();
             if (windowHeight<600) {
                 windowHeight=600;
@@ -139,6 +156,7 @@
                 // running
                 this.$el.find(".sq-content").show();
                 this.$el.find("#sq-threshold-selector").hide();
+                this.$el.find("#percentage-display").hide();
                 if (this.model.get("status") == "RUNNING") {
                     this.$el.find(".sq-loading").show();
                 }
@@ -205,6 +223,7 @@
                 this.updateSankey(diagramPort.get(0), this.sankeyD3, energy, sankeyWidth, sankeyHeight, headerWidth, slowmo);
 
                 this.$el.find("#sq-threshold-selector").show();
+                this.$el.find("#percentage-display").show();
                 this.$el.find(".sq-sankey").show();
                 this.$el.find(".sq-loading").hide();
                 this.$el.find(".sq-error").hide();
@@ -782,8 +801,22 @@
 
             node.append("text")
             .attr({
-                "class": "node-name",
+                "class": "node-percentage",
                 "x": 15 + sankey.nodeWidth(),
+                "width": "200"
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-percentage-spacer",
+                "x": 55 + sankey.nodeWidth(),
+                "width": "10"
+            });
+
+            node.append("text")
+            .attr({
+                "class": "node-name",
+                "x": 40 + sankey.nodeWidth(),
                 "text-anchor": 'start',
                 "transform": null,
             })
@@ -803,6 +836,18 @@
             .style("fill", function(d) { return d.color;})
             .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
             ;
+
+            if (me.percentageDisplayModel.get("display")) {
+                d3.selectAll(".node-percentage, .node-percentage-spacer")
+                    .style('display', 'inline');
+                d3.selectAll(".node-name")
+                    .attr('x', '80');
+            } else {
+                d3.selectAll(".node-percentage, .node-percentage-spacer")
+                    .style('display', 'none');
+                d3.selectAll(".node-name")
+                    .attr('x', '30');
+            }
 
             // update
             nodedata
@@ -899,7 +944,43 @@
             var myTipNode = this.tipNode;
             svg.call(myTipNode);
 
-            nodedata.select("text")
+            nodedata.select("text.node-percentage")
+            .attr("y", function(d) { return d.dy / 2; })
+            .text(function(d) {
+            // Return formatted percentage
+            var percentage = fomatPercentSpecial(d.percentTotal) + "%";
+            return percentage;
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
+            });
+
+            nodedata.select("text.node-percentage-spacer")
+            .attr("y", function(d) { return d.dy / 2; })
+            .text(function(d) {
+            // Return formatted percentage
+            return "|";
+            })
+            /*
+            Must set the fill and stroke to none here and use
+            important declarations in our css to style the svg.
+            (Prevents default colour displaying in transition)
+            */
+            .style({
+                "fill": "none",
+                "stroke": "none"
+            });
+
+            nodedata.select("text.node-name")
+                .attr("y", function(d) { return d.dy / 2; });
+
+            nodedata.selectAll("text")
             .transition().duration(duration)
             .attr("y", function(d) { return d.dy / 2; })
             .attr("dy", ".35em")

@@ -16,16 +16,25 @@
     	<div class='sq-header'></div>
 	    <div class='sq-diagram'></div>
     </div>
-    <div id="sq-threshold-selector" style="width:180px; position: relative; top: -50px; left:80%;">
-		<table>
-			<tr>
-				<td colspan="3"><div style="text-align:center;">Details</div></td>
-			</tr>
-	    	<tr style="vertical-align:middle;">
-		        <td style="vertical-align:middle;padding-top:5px;"><span style="font-size:large;"><i class="fa fa-minus-circle"></i></span></td>
-		        <td style="vertical-align:middle;"><input style="vertical-align:text-bottom;" type="range" id="range" class='threshold-selector' min="0" max="100" step="1" value='{{thresholdValue}}' size="4"></input></td>
-		        <td style="vertical-align:middle;padding-top:5px;"><span style="font-size:large;"><i class="fa fa-plus-circle"></i></span></td>
-		    </tr>
-	    </table>
-	</div>
+    <div id="sankey-interactions" style="position:absolute; height: 50px; bottom: 0px; right: 50px; width: 300px;">
+        <div id="percentage-display" style="width:60px; position: relative; float: right; top: 24px;">
+            <span class="title">% Input</span>
+            <div class="checkbox-toggle">
+                <input type="checkbox" value="None" class="checkbox-percentage" id="checkbox-percentage" name="check" />
+                <label for="checkbox-percentage"></label>
+            </div>
+        </div>
+        <div id="sq-threshold-selector" style="width:200px; position: relative;">
+            <table>
+                <tr>
+                    <td colspan="3"><div style="text-align:center;">Details</div></td>
+                </tr>
+                <tr style="vertical-align:middle;">
+                    <td style="vertical-align:middle;padding-top:5px;"><span style="font-size:large;"><i class="fa fa-minus-circle"></i></span></td>
+                    <td style="vertical-align:middle;"><input style="vertical-align:text-bottom;" type="range" id="range" class='threshold-selector' min="0" max="100" step="1" value='{{thresholdValue}}' size="4"></input></td>
+                    <td style="vertical-align:middle;padding-top:5px;"><span style="font-size:large;"><i class="fa fa-plus-circle"></i></span></td>
+                </tr>
+            </table>
+        </div>
+    </div>
 </div>
