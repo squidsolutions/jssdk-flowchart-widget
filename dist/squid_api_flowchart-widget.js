@@ -1159,7 +1159,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
             var colorScaleTipData = {
                     "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate),
-                    "metric" : this.secondaryMetric.name
+                    "metric" : this.secondaryMetric?this.secondaryMetric.name:null
             };
             $("#secondary-value").html(templateSankeyColorScaleTip(colorScaleTipData));
             $("[rel=tooltip]").tooltip();
@@ -1418,7 +1418,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                     data.secondaryKPI = me.secondaryMetric.oid;
                     data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
                     data.secondaryColor = scaleColor(d);
-                    data.secondaryDefinition = me.secondaryMetric.lname;
+                    data.secondaryDefinition = me.secondaryMetric.name;
                 }
                 data.primaryDefinition = me.primaryMetric.lname;
                 return templateTipLink(data);
