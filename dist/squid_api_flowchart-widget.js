@@ -1222,7 +1222,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             node.append("text")
             .attr({
                 "class": "node-name",
-                "x": 55 + sankey.nodeWidth(),
+                "x": 15 + sankey.nodeWidth(),
                 "text-anchor": 'start',
                 "transform": null,
             })
@@ -1233,22 +1233,6 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                     }
 
                 return name;
-            });
-
-            node.append("text")
-            .attr({
-                "class": "node-percentage",
-                "x": 9 + sankey.nodeWidth(),
-                "width": "200"
-            })
-            .style({
-                "display": "none",
-                "fill": "#000000"
-            })
-            .text(function(d) {
-                // Return formatted percentage
-                var percentage = fomatPercentSpecial(d.percentTotal) + "%   |";
-                return percentage;
             });
 
             node.append("rect")
