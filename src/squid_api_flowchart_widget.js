@@ -34,6 +34,8 @@
         primaryMetric : null,
 
         secondaryMetric : null,
+        
+        colorScale : null,
 
         metadata : null,
 
@@ -58,6 +60,9 @@
             } else {
                 var DisplayOptionModel = Backbone.Model.extend();
                 this.displayOptionModel = new DisplayOptionModel({displayScaleForNodes : true});
+            }
+            if (options.colorScale) {
+            	this.colorScale = options.colorScale;
             }
             this.displayOptionModel.on('change:displayScaleForNodes', function() {this.render(true);}, this);
 
@@ -694,9 +699,15 @@
 
             var avg_secondary_rate = energy.secondaryTotal/energy.primaryTotal*100;
             var inflexion_value = 50;
-            var colorscale = d3.scale.linear()
-            .range(['red', 'skyblue', 'green'])
-            .domain([0, inflexion_value, 100]);
+            var colorscale;
+            if (this.colorScale) {
+            	colorscale = this.colorScale;
+            } else {
+            	// legacy default
+            	colorscale = d3.scale.linear()
+            				.range(['red', 'skyblue', 'green'])
+            				.domain([0, inflexion_value, 100]);
+            }
 
             var displayScaleForNodes;
             if (this.displayOptionModel && this.secondaryMetric) {
