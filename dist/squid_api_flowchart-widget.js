@@ -653,6 +653,14 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             return this;
         },
 
+        remove: function() {
+            this.undelegateEvents();
+            this.$el.empty();
+            this.stopListening();
+            $(window).off("resize");
+            return this;
+        },
+
         /*
          * Turn a Datatable into a D3 energy object with added information to support the threshold computation
          */
@@ -1087,428 +1095,430 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
         updateSankey : function(selector, sankey, energy, viewWidth, viewHeight, headerWidth, slowmo) {
             var me = this;
+            if (selector) {
+                var formatPercent1 = d3.format(",.1f");
+                var formatPercent2 = d3.format(",.2f");
 
-            var formatPercent1 = d3.format(",.1f");
-            var formatPercent2 = d3.format(",.2f");
-
-            var fomatPercentSpecial = function(value) {
-                if (value>=1) {
-                    return formatPercent1(value);
-                } else {
-                    return formatPercent2(value);
-                }
-            };
-
-            var lastStep = energy.stepCount-1;
-
-            var duration = slowmo?1000:200;
-
-            sankey
-            .nodes(energy.nodes)
-            .links(energy.links)
-            .layout(0);// disable layout optimization since we already sorted the nodes according to our own needs
-
-            var path = sankey.link();
-
-            var svg = d3.select(selector).select("svg");
-
-            var avg_secondary_rate = energy.secondaryTotal/energy.primaryTotal*100;
-            var inflexion_value = 50;
-            var colorscale = d3.scale.linear()
-            .range(['red', 'skyblue', 'green'])
-            .domain([0, inflexion_value, 100]);
-
-            var displayScaleForNodes;
-            if (this.displayOptionModel && this.secondaryMetric) {
-                displayScaleForNodes = this.displayOptionModel.get("displayScaleForNodes");
-            } else {
-                displayScaleForNodes = false;
-            }
-
-            var scaleColor = function (d) {
-                var x = d.secondary/d.primary*100;
-                return colorscale(x);
-            };
-            var nodeColor =  function(d) {
-                return displayScaleForNodes?scaleColor(d):d.color;
-            };
-            var linkDefaultColor = "#aaaaaa";
-            var linkColor =  function(d) {
-                return displayScaleForNodes?scaleColor(d):linkDefaultColor;
-            };
-
-            // update secondary metric
-            var colorScaleData = {"steps" : []};
-            var step = -5;
-            var defaultColor = "rgba(170,170,170,.5)";
-            for (var i = 0; i<=100; i-=step) {
-                var selected = avg_secondary_rate<=i && avg_secondary_rate>i+step;
-                var styleClass = selected?"color-scale-selected":"color-scale";
-                var color = (displayScaleForNodes||selected)?colorscale(i):defaultColor;
-                var style = "background-color:"+color+";";
-                if (selected) {
-                    style += " border-color:"+color+";";
-                }
-                colorScaleData.steps.push({
-                    "class" : styleClass,
-                    "style" : style,
-                    "title" : (selected?fomatPercentSpecial(avg_secondary_rate):i)+"%"
-                });
-            }
-            $("#secondary-range").html(templateSankeyColorScale(colorScaleData));
-
-            var colorScaleTipData = {
-                    "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate),
-                    "metric" : this.secondaryMetric?this.secondaryMetric.name:null
-            };
-            $("#secondary-value").html(templateSankeyColorScaleTip(colorScaleTipData));
-            $("[rel=tooltip]").tooltip();
-
-            var margin = {top: 1, right: headerWidth-17+5, bottom: 6, left: 0},
-            width = viewWidth - margin.left - margin.right,
-            height = viewHeight - margin.top - margin.bottom;
-
-            svg.attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .select("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-            sankey
-            .nodeWidth(15)
-            .nodePadding(10)
-            .size([width, height]);
-
-            // create data
-            var nodedata = svg.selectAll(".node")
-            .data(energy.nodes, function(d) {return d.step+"_"+d.name;});
-
-            var linkdata = svg.selectAll(".link")
-            .data(energy.links, function(d) { return d.source.step+"_"+d.source.name+"/"+d.target.step+"_"+d.target.name;});
-
-            // enter link first
-            var link = linkdata.enter().append("path")
-            .attr("class", "link")
-            .style("stroke", function(d) {
-                    return linkDefaultColor;
-                })
-            .style("stroke-opacity", function(d) {
-                    return "0.1";
-                })
-            .attr("d", path)
-            .on("dblclick", function (d) {
-                    me.dbclickLink(d);
-                })
-            .transition().duration(duration).style("stroke-width", function(d) {
-                    return Math.max(1, d.dy);
-                })
-            .sort(function(a, b) {
-                    return b.dy - a.dy;
-                });
-
-            // enter node after to be on top
-            var node = nodedata.enter().append("g")
-            .attr("class","node")
-            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-            .style("position", "relative")
-            .on("dblclick", function (d) {
-                    me.dbclickNode(d);
-                })
-            .call(d3.behavior.drag()
-                    .origin(function(d) { return d; })
-                    .on("dragstart", function() { this.parentNode.appendChild(this); })
-                    .on("drag", dragmove)
-                );
-
-            node.append("text")
-            .attr({
-                "class": "node-percentage",
-                "x": 15 + sankey.nodeWidth(),
-                "width": "200"
-            });
-
-            node.append("text")
-            .attr({
-                "class": "node-percentage-spacer",
-                "x": 55 + sankey.nodeWidth(),
-                "width": "10"
-            });
-
-            node.append("text")
-            .attr({
-                "class": "node-name",
-                "x": 40 + sankey.nodeWidth(),
-                "text-anchor": 'start',
-                "transform": null,
-            })
-            .text(function(d) {
-                var name = d.label;
-                    if (name.length > me.titleMaxChars && name.indexOf("...", this.length - 3) == -1) {
-                        name = name.substr(0, me.titleMaxChars) + "...";
+                var fomatPercentSpecial = function(value) {
+                    if (value>=1) {
+                        return formatPercent1(value);
+                    } else {
+                        return formatPercent2(value);
                     }
+                };
 
-                return name;
-            });
+                var lastStep = energy.stepCount-1;
 
-            node.append("rect")
-            .attr("height", function(d) { return 0; })
-            .attr("width", sankey.nodeWidth())
-            .attr("x", 0)
-            .style("fill", function(d) { return d.color;})
-            .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
-            ;
+                var duration = slowmo?1000:200;
 
-            if (me.percentageDisplayModel.get("display")) {
-                d3.selectAll(".node-percentage, .node-percentage-spacer")
-                    .style('display', 'inline');
-                d3.selectAll(".node-name")
-                    .attr('x', '80');
-            } else {
-                d3.selectAll(".node-percentage, .node-percentage-spacer")
-                    .style('display', 'none');
-                d3.selectAll(".node-name")
-                    .attr('x', '30');
-            }
+                sankey
+                .nodes(energy.nodes)
+                .links(energy.links)
+                .layout(0);// disable layout optimization since we already sorted the nodes according to our own needs
 
-            // update
-            nodedata
-            .transition().duration(duration)
-            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-            .select("rect")
-            .attr("height", function(d) { return d.dy; })
-            .style("fill", nodeColor)
-            ;
+                var path = sankey.link();
 
-            var tipNodeRenderHtml = function(d) {
+                var svg = d3.select(selector).select("svg");
 
-                var data = {"width":headerWidth-15};
-                //
-                data.node = d;
-                data.endsNode = (d.step===0) || (d.step==lastStep);
-                data.percentTotal = fomatPercentSpecial(d.percentTotal);
-                data.percentTotalGoThrough = fomatPercentSpecial(d.percentTotal-d.exitPercent);
-                data.percentTotalExit = fomatPercentSpecial(d.exitPercent);
-                data.percentGoThrough = fomatPercentSpecial((d.percentTotal-d.exitPercent)/d.percentTotal*100);
-                data.percentExit = fomatPercentSpecial(d.exitPercent/d.percentTotal*100);
-                if (me.secondaryMetric) {
-                    data.secondaryKPI = me.secondaryMetric.oid;
-                    data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
-                    data.secondaryColor = scaleColor(d);
-                    data.secondaryDefinition = me.secondaryMetric.lname;
-                }
-                data.primaryDefinition = me.primaryMetric.lname;
+                var avg_secondary_rate = energy.secondaryTotal/energy.primaryTotal*100;
+                var inflexion_value = 50;
+                var colorscale = d3.scale.linear()
+                .range(['red', 'skyblue', 'green'])
+                .domain([0, inflexion_value, 100]);
 
-                // pie chart
-                data.piechart = {};
-                data.piechart.r = 15;
-                data.piechart.center = data.piechart.r+2;
-                data.piechart.size = 2*data.piechart.center;
-                data.piechart.startx = data.piechart.center-data.piechart.r;
-                data.piechart.starty = data.piechart.center;
-                var angular = d.exitPercent/d.percentTotal*2*Math.PI;
-                if (d.exitPercent===0) {
-                    data.piechart.fullpie = true;
-                    data.piechart.green = "green";
-                } else if (d.exitPercent==d.percentTotal) {
-                    data.piechart.fullpie = true;
-                    data.piechart.green = "red";
+                var displayScaleForNodes;
+                if (this.displayOptionModel && this.secondaryMetric) {
+                    displayScaleForNodes = this.displayOptionModel.get("displayScaleForNodes");
                 } else {
-                    data.piechart.cos = data.piechart.center-data.piechart.r*Math.cos(angular);
-                    data.piechart.sin = data.piechart.center+data.piechart.r*Math.sin(angular);
-                    data.piechart.first = data.percentExit>50?0:1;
-                    data.piechart.second = data.percentExit<=50?0:1;
-                    data.piechart.green = "green";
-                    data.piechart.red = "red";
+                    displayScaleForNodes = false;
                 }
-                // merge node
-                if (d.type=="merge") {
-                    data.mergeNode = {};
-                    data.mergeNode.nodes = [];
-                    for (var i=0;i<d.nodes.length;i++) {
-                        var node = d.nodes[i];
-                        if (i>5 && d.nodes.length>6) {
-                            data.mergeNode.moreNodes = (d.nodes.length-i);
-                            break;
+
+                var scaleColor = function (d) {
+                    var x = d.secondary/d.primary*100;
+                    return colorscale(x);
+                };
+                var nodeColor =  function(d) {
+                    return displayScaleForNodes?scaleColor(d):d.color;
+                };
+                var linkDefaultColor = "#aaaaaa";
+                var linkColor =  function(d) {
+                    return displayScaleForNodes?scaleColor(d):linkDefaultColor;
+                };
+
+                // update secondary metric
+                var colorScaleData = {"steps" : []};
+                var step = -5;
+                var defaultColor = "rgba(170,170,170,.5)";
+                for (var i = 0; i<=100; i-=step) {
+                    var selected = avg_secondary_rate<=i && avg_secondary_rate>i+step;
+                    var styleClass = selected?"color-scale-selected":"color-scale";
+                    var color = (displayScaleForNodes||selected)?colorscale(i):defaultColor;
+                    var style = "background-color:"+color+";";
+                    if (selected) {
+                        style += " border-color:"+color+";";
+                    }
+                    colorScaleData.steps.push({
+                        "class" : styleClass,
+                        "style" : style,
+                        "title" : (selected?fomatPercentSpecial(avg_secondary_rate):i)+"%"
+                    });
+                }
+                $("#secondary-range").html(templateSankeyColorScale(colorScaleData));
+
+                var colorScaleTipData = {
+                        "avgSecondaryRate" : fomatPercentSpecial(avg_secondary_rate),
+                        "metric" : this.secondaryMetric?this.secondaryMetric.name:null
+                };
+                $("#secondary-value").html(templateSankeyColorScaleTip(colorScaleTipData));
+                $("[rel=tooltip]").tooltip();
+
+                var margin = {top: 1, right: headerWidth-17+5, bottom: 6, left: 0},
+                width = viewWidth - margin.left - margin.right,
+                height = viewHeight - margin.top - margin.bottom;
+
+                svg.attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .select("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                sankey
+                .nodeWidth(15)
+                .nodePadding(10)
+                .size([width, height]);
+
+                // create data
+                var nodedata = svg.selectAll(".node")
+                .data(energy.nodes, function(d) {return d.step+"_"+d.name;});
+
+                var linkdata = svg.selectAll(".link")
+                .data(energy.links, function(d) { return d.source.step+"_"+d.source.name+"/"+d.target.step+"_"+d.target.name;});
+
+                // enter link first
+                var link = linkdata.enter().append("path")
+                .attr("class", "link")
+                .style("stroke", function(d) {
+                        return linkDefaultColor;
+                    })
+                .style("stroke-opacity", function(d) {
+                        return "0.1";
+                    })
+                .attr("d", path)
+                .on("dblclick", function (d) {
+                        me.dbclickLink(d);
+                    })
+                .transition().duration(duration).style("stroke-width", function(d) {
+                        return Math.max(1, d.dy);
+                    })
+                .sort(function(a, b) {
+                        return b.dy - a.dy;
+                    });
+
+                // enter node after to be on top
+                var node = nodedata.enter().append("g")
+                .attr("class","node")
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+                .style("position", "relative")
+                .on("dblclick", function (d) {
+                        me.dbclickNode(d);
+                    })
+                .call(d3.behavior.drag()
+                        .origin(function(d) { return d; })
+                        .on("dragstart", function() { this.parentNode.appendChild(this); })
+                        .on("drag", dragmove)
+                    );
+
+                node.append("text")
+                .attr({
+                    "class": "node-percentage",
+                    "x": 15 + sankey.nodeWidth(),
+                    "width": "200"
+                });
+
+                node.append("text")
+                .attr({
+                    "class": "node-percentage-spacer",
+                    "x": 55 + sankey.nodeWidth(),
+                    "width": "10"
+                });
+
+                node.append("text")
+                .attr({
+                    "class": "node-name",
+                    "x": 40 + sankey.nodeWidth(),
+                    "text-anchor": 'start',
+                    "transform": null,
+                })
+                .text(function(d) {
+                    var name = d.label;
+                        if (name.length > me.titleMaxChars && name.indexOf("...", this.length - 3) == -1) {
+                            name = name.substr(0, me.titleMaxChars) + "...";
                         }
-                        var node2 = {"fullname":node.fullname,"percentTotal":fomatPercentSpecial(node.percentTotal)};
-                        data.mergeNode.nodes.push(node2);
+
+                    return name;
+                });
+
+                node.append("rect")
+                .attr("height", function(d) { return 0; })
+                .attr("width", sankey.nodeWidth())
+                .attr("x", 0)
+                .style("fill", function(d) { return d.color;})
+                .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
+                ;
+
+                if (me.percentageDisplayModel.get("display")) {
+                    d3.selectAll(".node-percentage, .node-percentage-spacer")
+                        .style('display', 'inline');
+                    d3.selectAll(".node-name")
+                        .attr('x', '80');
+                } else {
+                    d3.selectAll(".node-percentage, .node-percentage-spacer")
+                        .style('display', 'none');
+                    d3.selectAll(".node-name")
+                        .attr('x', '30');
+                }
+
+                // update
+                nodedata
+                .transition().duration(duration)
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+                .select("rect")
+                .attr("height", function(d) { return d.dy; })
+                .style("fill", nodeColor)
+                ;
+
+                var tipNodeRenderHtml = function(d) {
+
+                    var data = {"width":headerWidth-15};
+                    //
+                    data.node = d;
+                    data.endsNode = (d.step===0) || (d.step==lastStep);
+                    data.percentTotal = fomatPercentSpecial(d.percentTotal);
+                    data.percentTotalGoThrough = fomatPercentSpecial(d.percentTotal-d.exitPercent);
+                    data.percentTotalExit = fomatPercentSpecial(d.exitPercent);
+                    data.percentGoThrough = fomatPercentSpecial((d.percentTotal-d.exitPercent)/d.percentTotal*100);
+                    data.percentExit = fomatPercentSpecial(d.exitPercent/d.percentTotal*100);
+                    if (me.secondaryMetric) {
+                        data.secondaryKPI = me.secondaryMetric.oid;
+                        data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
+                        data.secondaryColor = scaleColor(d);
+                        data.secondaryDefinition = me.secondaryMetric.lname;
+                    }
+                    data.primaryDefinition = me.primaryMetric.lname;
+
+                    // pie chart
+                    data.piechart = {};
+                    data.piechart.r = 15;
+                    data.piechart.center = data.piechart.r+2;
+                    data.piechart.size = 2*data.piechart.center;
+                    data.piechart.startx = data.piechart.center-data.piechart.r;
+                    data.piechart.starty = data.piechart.center;
+                    var angular = d.exitPercent/d.percentTotal*2*Math.PI;
+                    if (d.exitPercent===0) {
+                        data.piechart.fullpie = true;
+                        data.piechart.green = "green";
+                    } else if (d.exitPercent==d.percentTotal) {
+                        data.piechart.fullpie = true;
+                        data.piechart.green = "red";
+                    } else {
+                        data.piechart.cos = data.piechart.center-data.piechart.r*Math.cos(angular);
+                        data.piechart.sin = data.piechart.center+data.piechart.r*Math.sin(angular);
+                        data.piechart.first = data.percentExit>50?0:1;
+                        data.piechart.second = data.percentExit<=50?0:1;
+                        data.piechart.green = "green";
+                        data.piechart.red = "red";
+                    }
+                    // merge node
+                    if (d.type=="merge") {
+                        data.mergeNode = {};
+                        data.mergeNode.nodes = [];
+                        for (var i=0;i<d.nodes.length;i++) {
+                            var node = d.nodes[i];
+                            if (i>5 && d.nodes.length>6) {
+                                data.mergeNode.moreNodes = (d.nodes.length-i);
+                                break;
+                            }
+                            var node2 = {"fullname":node.fullname,"percentTotal":fomatPercentSpecial(node.percentTotal)};
+                            data.mergeNode.nodes.push(node2);
+                        }
+                    }
+                    return templateTipNode(data);
+                };
+
+                if (this.tipNode) {
+                    this.tipNode.hide();
+                }
+                this.tipNode = d3.tip()
+                .attr('class', 'd3-tip')
+                .style('min-width', (headerWidth-sankey.nodeWidth()-15)+'px')
+                .style('z-index',2000)
+                .offset(function(d) {
+                    if (d.type=="merge") {
+                        return [d.dy/2+35,5];
+                    } else {
+                        return [0,5];
                     }
                 }
-                return templateTipNode(data);
-            };
+                )
+                .direction(function(d) {
+                    if (d.type=="merge") {
+                        return "ne";
+                    } else {
+                        return "e";
+                    }
+                })
+                .html(function(d) {
+                    return tipNodeRenderHtml(d);
+                });
+                var myTipNode = this.tipNode;
+                
+                svg.call(myTipNode);
 
-            if (this.tipNode) {
-                this.tipNode.hide();
-            }
-            this.tipNode = d3.tip()
-            .attr('class', 'd3-tip')
-            .style('min-width', (headerWidth-sankey.nodeWidth()-15)+'px')
-            .style('z-index',2000)
-            .offset(function(d) {
-                if (d.type=="merge") {
-                    return [d.dy/2+35,5];
-                } else {
-                    return [0,5];
-                }
-            }
-            )
-            .direction(function(d) {
-                if (d.type=="merge") {
-                    return "ne";
-                } else {
-                    return "e";
-                }
-            })
-            .html(function(d) {
-                return tipNodeRenderHtml(d);
-            });
-            var myTipNode = this.tipNode;
-            svg.call(myTipNode);
+                nodedata.select("text.node-percentage")
+                .attr("y", function(d) { return d.dy / 2; })
+                .text(function(d) {
+                // Return formatted percentage
+                var percentage = fomatPercentSpecial(d.percentTotal) + "%";
+                return percentage;
+                })
+                /*
+                Must set the fill and stroke to none here and use
+                important declarations in our css to style the svg.
+                (Prevents default colour displaying in transition)
+                */
+                .style({
+                    "fill": "none",
+                    "stroke": "none"
+                });
 
-            nodedata.select("text.node-percentage")
-            .attr("y", function(d) { return d.dy / 2; })
-            .text(function(d) {
-            // Return formatted percentage
-            var percentage = fomatPercentSpecial(d.percentTotal) + "%";
-            return percentage;
-            })
-            /*
-            Must set the fill and stroke to none here and use
-            important declarations in our css to style the svg.
-            (Prevents default colour displaying in transition)
-            */
-            .style({
-                "fill": "none",
-                "stroke": "none"
-            });
+                nodedata.select("text.node-percentage-spacer")
+                .attr("y", function(d) { return d.dy / 2; })
+                .text(function(d) {
+                // Return formatted percentage
+                return "|";
+                })
+                /*
+                Must set the fill and stroke to none here and use
+                important declarations in our css to style the svg.
+                (Prevents default colour displaying in transition)
+                */
+                .style({
+                    "fill": "none",
+                    "stroke": "none"
+                });
 
-            nodedata.select("text.node-percentage-spacer")
-            .attr("y", function(d) { return d.dy / 2; })
-            .text(function(d) {
-            // Return formatted percentage
-            return "|";
-            })
-            /*
-            Must set the fill and stroke to none here and use
-            important declarations in our css to style the svg.
-            (Prevents default colour displaying in transition)
-            */
-            .style({
-                "fill": "none",
-                "stroke": "none"
-            });
+                nodedata.select("text.node-name")
+                    .attr("y", function(d) { return d.dy / 2; });
 
-            nodedata.select("text.node-name")
-                .attr("y", function(d) { return d.dy / 2; });
+                nodedata.selectAll("text")
+                .transition().duration(duration)
+                .attr("y", function(d) { return d.dy / 2; })
+                .attr("dy", ".35em")
+                ;
 
-            nodedata.selectAll("text")
-            .transition().duration(duration)
-            .attr("y", function(d) { return d.dy / 2; })
-            .attr("dy", ".35em")
-            ;
-
-            nodedata.select("rect")
-            .on('dblclick', myTipNode.hide)
-            .on('click', myTipNode.show)// touch?
-            .on('mouseover', function(d) {
-                var selection = d3.select(this);
-                selection.style("fill", function(d) {
-                    var color = nodeColor(d);
-                    return d3.rgb(color).darker(1);});
-                myTipNode.attr('class', 'd3-tip animate').show(d);})
-                .on('mouseout', function(d) {
+                nodedata.select("rect")
+                .on('dblclick', myTipNode.hide)
+                .on('click', myTipNode.show)// touch?
+                .on('mouseover', function(d) {
                     var selection = d3.select(this);
                     selection.style("fill", function(d) {
                         var color = nodeColor(d);
-                        return color;});
-                    myTipNode.attr('class', 'd3-tip').show(d);
-                    myTipNode.hide();});
+                        return d3.rgb(color).darker(1);});
+                    myTipNode.attr('class', 'd3-tip animate').show(d);})
+                    .on('mouseout', function(d) {
+                        var selection = d3.select(this);
+                        selection.style("fill", function(d) {
+                            var color = nodeColor(d);
+                            return color;});
+                        myTipNode.attr('class', 'd3-tip').show(d);
+                        myTipNode.hide();});
 
-            // exit
-            var exit = nodedata.exit()
-            .transition()
-            .duration(duration)
-            .attr("stroke-opacity", function(d) { return 0; })
-            .remove();
+                // exit
+                var exit = nodedata.exit()
+                .transition()
+                .duration(duration)
+                .attr("stroke-opacity", function(d) { return 0; })
+                .remove();
 
-            var tipLinkRenderHtml = function(d) {
-                var data = {"width":headerWidth-15,"percentTotal":fomatPercentSpecial(d.percentTotal)};
-                data.source = d.source;
-                data.target = d.target;
-                data.percentRelativeSource = fomatPercentSpecial(d.percentTotal/d.source.percentTotal*100);
-                data.percentRelativeTarget = fomatPercentSpecial(d.percentTotal/d.target.percentTotal*100);
-                data.exitRate = fomatPercentSpecial(d.exit/d.value*100);
-                if (me.secondaryMetric) {
-                    data.secondaryKPI = me.secondaryMetric.oid;
-                    data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
-                    data.secondaryColor = scaleColor(d);
-                    data.secondaryDefinition = me.secondaryMetric.name;
+                var tipLinkRenderHtml = function(d) {
+                    var data = {"width":headerWidth-15,"percentTotal":fomatPercentSpecial(d.percentTotal)};
+                    data.source = d.source;
+                    data.target = d.target;
+                    data.percentRelativeSource = fomatPercentSpecial(d.percentTotal/d.source.percentTotal*100);
+                    data.percentRelativeTarget = fomatPercentSpecial(d.percentTotal/d.target.percentTotal*100);
+                    data.exitRate = fomatPercentSpecial(d.exit/d.value*100);
+                    if (me.secondaryMetric) {
+                        data.secondaryKPI = me.secondaryMetric.oid;
+                        data.secondaryRate = fomatPercentSpecial(d.secondary/d.primary*100);
+                        data.secondaryColor = scaleColor(d);
+                        data.secondaryDefinition = me.secondaryMetric.name;
+                    }
+                    data.primaryDefinition = me.primaryMetric.lname;
+                    return templateTipLink(data);
+                };
+                if (this.tipLink) {
+                    this.tipLink.hide();
                 }
-                data.primaryDefinition = me.primaryMetric.lname;
-                return templateTipLink(data);
-            };
-            if (this.tipLink) {
-                this.tipLink.hide();
-            }
-            var mytipLink = d3.tip()
-            .attr('class', 'd3-tip')
-            .style('min-width', (headerWidth-sankey.nodeWidth()-15)+'px')
-            .style('z-index',2000)
-            .offset(function(d) {
-                // recompute the path bounds
-                var y0 = d.source.y + d.sy + d.dy / 2;
-                var y1 = d.target.y + d.ty + d.dy / 2;
-                var L = y1-y0;
-                return [L/2,sankey.nodeWidth()/2];
-            }
-            )
-            .direction(function(d) {
-                return "e";
-            })
-            .html(function(d) {
-                return tipLinkRenderHtml(d);
-            });
-            this.tipLink = mytipLink;
-            svg.call(mytipLink);
-
-            linkdata
-            .on('dblclick', mytipLink.hide)
-            .on('click', mytipLink.show)// touch?
-            .on('mouseover', function(d) {
-                    var selection = d3.select(this);
-                    selection.style("stroke", function(d) {
-                            var color = linkColor(d);
-                            return d3.rgb(color).darker(1);
-                        })
-                    .style("stroke-opacity",0.6);
-                    mytipLink.attr('class', 'd3-tip animate').show(d);
+                var mytipLink = d3.tip()
+                .attr('class', 'd3-tip')
+                .style('min-width', (headerWidth-sankey.nodeWidth()-15)+'px')
+                .style('z-index',2000)
+                .offset(function(d) {
+                    // recompute the path bounds
+                    var y0 = d.source.y + d.sy + d.dy / 2;
+                    var y1 = d.target.y + d.ty + d.dy / 2;
+                    var L = y1-y0;
+                    return [L/2,sankey.nodeWidth()/2];
+                }
+                )
+                .direction(function(d) {
+                    return "e";
                 })
-            .on('mouseout', function(d) {
-                    var selection = d3.select(this);
-                    selection.style("stroke", function(d) {
-                            var color = linkColor(d);
-                            return color;
-                        })
-                    .style("stroke-opacity",function(d) {
-                            return d.percentTotal>10?0.5:d.percentTotal>1?0.4:0.1;
-                        });
-                    mytipLink.attr('class', 'd3-tip').show(d);
-                    mytipLink.hide();
+                .html(function(d) {
+                    return tipLinkRenderHtml(d);
                 });
+                this.tipLink = mytipLink;
+                if (svg[0][0] !== null) {
+                    svg.call(mytipLink);
+                }
 
-            svg.selectAll(".link")
-            .transition().duration(duration)
-            .attr("d", path)
-            .style("stroke-width", function(d) { return Math.max(1, d.dy); })
-            .style("stroke-opacity", function(d) {return d.percentTotal>10?0.5:d.percentTotal>1?0.4:0.1;})
-            .style("stroke", linkColor);
+                linkdata
+                .on('dblclick', mytipLink.hide)
+                .on('click', mytipLink.show)// touch?
+                .on('mouseover', function(d) {
+                        var selection = d3.select(this);
+                        selection.style("stroke", function(d) {
+                                var color = linkColor(d);
+                                return d3.rgb(color).darker(1);
+                            })
+                        .style("stroke-opacity",0.6);
+                        mytipLink.attr('class', 'd3-tip animate').show(d);
+                    })
+                .on('mouseout', function(d) {
+                        var selection = d3.select(this);
+                        selection.style("stroke", function(d) {
+                                var color = linkColor(d);
+                                return color;
+                            })
+                        .style("stroke-opacity",function(d) {
+                                return d.percentTotal>10?0.5:d.percentTotal>1?0.4:0.1;
+                            });
+                        mytipLink.attr('class', 'd3-tip').show(d);
+                        mytipLink.hide();
+                    });
 
-            linkdata.exit()
-            .transition()
-            .duration(duration)
-            .style("stroke-width", 0)
-            .remove();
+                svg.selectAll(".link")
+                .transition().duration(duration)
+                .attr("d", path)
+                .style("stroke-width", function(d) { return Math.max(1, d.dy); })
+                .style("stroke-opacity", function(d) {return d.percentTotal>10?0.5:d.percentTotal>1?0.4:0.1;})
+                .style("stroke", linkColor);
 
-
+                linkdata.exit()
+                .transition()
+                .duration(duration)
+                .style("stroke-width", 0)
+                .remove();
+            }
             function value(link) {
                 return link.value;
             }
