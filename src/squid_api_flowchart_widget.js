@@ -41,8 +41,8 @@
 
         initialize : function(options) {
             if (this.model) {
-                this.model.on('change:status', this.update, this);
-                this.model.on('change:error', this.render, this);
+                this.listenTo(this.model, 'change:status', this.update);
+                this.listenTo(this.model, 'change:error', this.render);
             }
             if (options.filterModel) {
                 this.filterModel = options.filterModel;
@@ -59,17 +59,17 @@
                 var DisplayOptionModel = Backbone.Model.extend();
                 this.displayOptionModel = new DisplayOptionModel({displayScaleForNodes : true});
             }
-            this.displayOptionModel.on('change:displayScaleForNodes', function() {this.render(true);}, this);
+            this.listenTo(this.displayOptionModel, 'change:displayScaleForNodes', function() {this.render(true);});
 
             var ThresholdModel = Backbone.Model.extend();
             this.thresholdModel = new ThresholdModel({"threshold" : this.thresholdValue});
-            this.thresholdModel.on('change:threshold', function() {
+            this.listenTo(this.thresholdModel, 'change:threshold', function() {
                 this.render(false);
-            }, this);
+            });
 
             var PercentageDisplayModel = Backbone.Model.extend();
             this.percentageDisplayModel = new PercentageDisplayModel({"display" : this.percentageDisplay});
-            this.percentageDisplayModel.on('change:display', this.render, this);
+            this.listenTo(this.percentageDisplayModel, 'change:display', this.render);
 
             $(window).on("resize", _.bind(this.resize(),this));
         },
