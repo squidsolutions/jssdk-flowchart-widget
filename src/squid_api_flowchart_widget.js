@@ -61,6 +61,9 @@
                 var DisplayOptionModel = Backbone.Model.extend();
                 this.displayOptionModel = new DisplayOptionModel({displayScaleForNodes : true});
             }
+            if (options.afterRender) {
+                this.afterRender = options.afterRender;
+            }
             
             this.listenTo(this.displayOptionModel, 'change:displayScaleForNodes', function() {this.render(true);});
 
@@ -1118,6 +1121,11 @@
                 d3.select(this).attr("transform", "translate(" + d.x + "," + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + ")");
                 sankey.relayout();
                 linkdata.attr("d", path);
+            }
+
+            if (this.afterRender) {
+                // call the afterRender function
+                this.afterRender(event);
             }
 
         },
