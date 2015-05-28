@@ -1545,7 +1545,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
             if (this.afterRender) {
                 // call the afterRender function
-                this.afterRender(event);
+                this.afterRender();
             }
 
         },

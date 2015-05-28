@@ -1125,7 +1125,7 @@
 
             if (this.afterRender) {
                 // call the afterRender function
-                this.afterRender(event);
+                this.afterRender();
             }
 
         },
