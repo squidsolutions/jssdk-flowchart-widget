@@ -454,7 +454,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
         primaryMetric : null,
 
         secondaryMetric : null,
-        
+
         colorScale : null,
 
         metadata : null,
@@ -484,11 +484,11 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             if (options.afterRender) {
                 this.afterRender = options.afterRender;
             }
-            
+
             this.listenTo(this.displayOptionModel, 'change:displayScaleForNodes', function() {this.render(true);});
 
             if (options.colorScale) {
-            	this.colorScale = options.colorScale;
+                this.colorScale = options.colorScale;
             }
 
             var ThresholdModel = Backbone.Model.extend();
@@ -719,23 +719,23 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                     node.label = nodename;
 
                     if (metadata) {
-                    	var info = metadata[nodename];
-            		if (info) {
-            			if (info.name) {
-            			    node.label = info.name;
-            			}
-            			node.colorHtml = info.color;
-            			node.color = d3.rgb(info.color);
-            			node.fullname = info.fullname?info.fullname:node.label;
-            		} else {
-            			node.colorHtml = metadata[""].color;
-            			node.color = d3.rgb(metadata[""].color);
-            			node.fullname = node.label;
-            		}
+                        var info = metadata[nodename];
+                    if (info) {
+                        if (info.name) {
+                            node.label = info.name;
+                        }
+                        node.colorHtml = info.color;
+                        node.color = d3.rgb(info.color);
+                        node.fullname = info.fullname?info.fullname:node.label;
                     } else {
-                    	node.colorHtml = 'rgb(120,121,123)';
-                    	node.color = d3.rgb('rgb(120,121,123)');
-                    	node.fullname = node.label;
+                        node.colorHtml = metadata[""].color;
+                        node.color = d3.rgb(metadata[""].color);
+                        node.fullname = node.label;
+                    }
+                    } else {
+                        node.colorHtml = 'rgb(120,121,123)';
+                        node.color = d3.rgb('rgb(120,121,123)');
+                        node.fullname = node.label;
                     }
 
                     nodesById[key] = node;
@@ -1136,12 +1136,12 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
             var inflexion_value = 50;
             var colorscale;
             if (this.colorScale) {
-            	colorscale = this.colorScale;
+                colorscale = this.colorScale;
             } else {
-            	// legacy default
-            	colorscale = d3.scale.linear()
-            				.range(['red', 'skyblue', 'green'])
-            				.domain([0, inflexion_value, 100]);
+                // legacy default
+                colorscale = d3.scale.linear()
+                            .range(['red', 'skyblue', 'green'])
+                            .domain([0, inflexion_value, 100]);
             }
 
                 var displayScaleForNodes;
@@ -1268,10 +1268,11 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                 })
                 .text(function(d) {
                     var name = d.label;
-                        if (name.length > me.titleMaxChars && name.indexOf("...", this.length - 3) == -1) {
-                            name = name.substr(0, me.titleMaxChars) + "...";
+                        if (name) {
+                            if (name.length > me.titleMaxChars && name.indexOf("...", this.length - 3) == -1) {
+                                name = name.substr(0, me.titleMaxChars) + "...";
+                            }
                         }
-
                     return name;
                 });
 
@@ -1388,7 +1389,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
                     return tipNodeRenderHtml(d);
                 });
                 var myTipNode = this.tipNode;
-                
+
                 svg.call(myTipNode);
 
                 nodedata.select("text.node-percentage")
